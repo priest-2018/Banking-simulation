@@ -4,12 +4,8 @@
 #include<stdlib.h>
 #include<time.h>
 #include<math.h>
-#include<windows.h>
-#include<conio.h>
 using namespace std;
 
-int rand_wait_time[1000];   //客户到达时间的间隔 
-int rand_deal_time[1000];   //客户处理业务时间 
 int now_time;
 int n=1;
 
@@ -162,7 +158,7 @@ int Bank::leave_queue()
 void Bank::insert()
 {
 	//Sleep(1000);
-	Node theNew(n,now_time,0,0,rand()%15+1,0);
+	Node theNew(n,now_time,0,0,gaussrand(4,m),0);
 	/*cout<<"业务号："<<n; 
 	cout<<"		还需等待："<<Q.size()<<"人"<<endl;*/
 	n++;
@@ -173,7 +169,7 @@ void Bank::insert()
 		Node temp=Q.front();
 		Q.pop();
 		temp.leave_time=now_time+temp.deal_time;
-		temp.wait_time=temp.deal_time;
+		//temp.wait_time=temp.deal_time;
 		temp.start_time=now_time;
 		//如果开始办理时已停止营业 
 		if(temp.start_time>=total_time&&temp.arrived_time<total_time)
@@ -213,7 +209,8 @@ void Bank::display()
 	//cout<<"在银行关门前办理完业务的客户："<<endl;
 	cout<<endl;
 	for(int i=0;i<cnt;i++)
-	{
+	{		
+		customer[i].wait_time=customer[i].leave_time-customer[i].arrived_time;
 		if(m_wait<customer[i].wait_time)
 			m_wait=customer[i].wait_time;
 		sum_wait+=customer[i].wait_time;
@@ -261,11 +258,11 @@ int main()
 	Time s,t;
 	cout<<"请输入银行营业时间，如营业时间为9:00-17:00，应输入9 17："<<endl;
 	cin>>s.hour>>t.hour;
-	int b=4,c=5;
-	/*cout<<"请输入银行可工作的窗口数：";
+	int b=4,c;
+	cout<<"请输入银行可工作的窗口数：";
 	cin>>b;
 	cout<<"请输入客户的平均业务办理时间：";
-	cin>>c;*/
+	cin>>c;
 	Bank bank(b,c,s,t);
 	now_time+=rand()%5+1;
 	while(bank.sign())
