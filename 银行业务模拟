@@ -1,0 +1,285 @@
+#include<iostream>
+#include<string.h>
+#include<queue>
+#include<stdlib.h>
+#include<time.h>
+#include<math.h>
+#include<windows.h>
+#include<conio.h>
+using namespace std;
+
+int rand_wait_time[1000];   //客户到达时间的间隔 
+int rand_deal_time[1000];   //客户处理业务时间 
+int now_time;
+int n=1;
+
+struct Time
+{
+	int hour;
+	int minute;
+	Time()
+	{
+		hour=minute=0;
+	}
+	Time(int h,int m)
+	{
+		hour=h;
+		minute=m;
+	}
+};
+
+struct Node
+{
+	int num;              //序列号 
+	int arrived_time;     //客户进入银行时间 
+	int wait_time;        //客户等待时间 
+	int start_time;       //开始办理业务时间 
+	int deal_time;        //业务办理时间 
+	int leave_time;       //客户离开时间 
+	Node(int n,int a,int w,int s,int d,int l)
+	{
+		num=n;
+		arrived_time=a;
+		wait_time=w;
+		start_time=s;
+		deal_time=d;
+		leave_time=l;
+	}
+	Node()
+	{
+		num=0;
+		arrived_time=0;
+		wait_time=0;
+		start_time=0;
+		deal_time=0;
+		leave_time=0;
+	}
+};
+
+class Bank
+{public:
+	Bank(int b,int c,Time s,Time t);
+	void insert();
+	void leave(int i);
+	int leave_queue();
+	int gaussrand();
+	bool sign(){return total_time>now_time;
+	}
+	void display();
+private:
+	queue<Node> q[10];
+	queue<Node> Q;
+	int cnt;                //一天内办理业务的总人数 
+	Node customer[1000];
+	int k;              	//窗口总数 
+	int m;					//平均处理时间 
+	Time open_time;         //开始营业时间 
+	Time off_time;          //结束营业时间 
+	int ave_wait;      	    //平均等待时间 
+	int m_wait;        	//最长等待时间 
+	int sum_wait;           //总等待时间 
+	Time finish_time;    	//最后完成时间 
+	int sum[10];       	    //每个窗口服务客户的人数 
+	int go_time[10];        //每个窗口最后办完业务的时间 
+	int total_time;         //银行营业的总时间（分） 
+};
+
+//随机生成正态分布的数 
+int Bank::gaussrand()
+{
+    static int V1,V2,S;
+    static int phase=0;
+    int X;
+    int a=m;
+    int b=0-m;
+    if(phase==0)
+	{
+        do
+		{
+            int U1 = (int)rand()%(a-b);
+            int U2 = (int)rand()%(a-b);
+            V1 = 2 * U1 - 1;
+            V2 = 2 * U2 - 1;
+            S = V1 * V1 + V2 * V2;
+        }while(S>=1||S==0);
+        X=V1*sqrt(-2*log(S)/S);
+    }
+	else
+        X= V2*sqrt(-2*log(S)/S);   
+    phase=1-phase;
+    return X;
+}
+
+Bank::Bank(int b,int c,Time s,Time t)
+{
+	cnt=0;
+	k=b;
+	m=c;
+	open_time=s;
+	off_time=t;
+	ave_wait=0;
+	m_wait=0;
+	sum_wait=0;
+	total_time=(t.hour-s.hour)*60;
+	now_time=0;
+	memset(sum,0,sizeof(sum));
+	memset(go_time,0,sizeof(go_time));
+};
+
+void Bank::leave(int i)
+{
+	if(q[i].empty())
+		return;
+	Node temp=q[i].front();
+	while(!q[i].empty()&&temp.leave_time<=now_time)
+	{
+		go_time[i]=temp.leave_time;
+		q[i].pop();
+		temp=q[i].front();
+	}
+	return;
+}
+
+int Bank::leave_queue()
+{
+	int ans=-1;
+	for(int i=0;i<k;i++)
+	{
+		if(sign())
+			leave(i);
+	}
+	for(int i=0;i<k;i++)
+	{
+		if(q[i].empty())
+		{
+			ans=i;
+			break;
+		}
+	}
+	return ans;
+}
+
+//银行进入一位新客户 
+void Bank::insert()
+{
+	//Sleep(1000);
+	Node theNew(n,now_time,0,0,rand()%15+1,0);
+	/*cout<<"业务号："<<n; 
+	cout<<"		还需等待："<<Q.size()<<"人"<<endl;*/
+	n++;
+	Q.push(theNew);
+	int queue_free=leave_queue();
+	while(queue_free!=-1&&!Q.empty())
+	{
+		Node temp=Q.front();
+		Q.pop();
+		temp.leave_time=now_time+temp.deal_time;
+		temp.wait_time=temp.deal_time;
+		temp.start_time=now_time;
+		//如果开始办理时已停止营业 
+		if(temp.start_time>=total_time&&temp.arrived_time<total_time)
+		{
+			temp.leave_time=total_time;
+			temp.wait_time=total_time-temp.arrived_time;
+			temp.deal_time=0;
+		}
+		//如果到达时银行已经停止营业	
+		if(temp.arrived_time>=total_time)
+		{
+			temp.leave_time=temp.arrived_time;
+			temp.wait_time=0;
+			temp.deal_time=0;
+			temp.start_time=temp.arrived_time;
+		}
+		sum[queue_free]++;
+		q[queue_free].push(temp);
+		customer[cnt++]=temp;
+		queue_free=leave_queue();
+	}
+	return;
+}
+
+void show(int x)
+{
+	if(x>=10)
+		cout<<x;
+	else
+		cout<<0<<x;
+	return;
+}
+
+void Bank::display()
+{
+	cout<<endl;
+	//cout<<"在银行关门前办理完业务的客户："<<endl;
+	cout<<endl;
+	for(int i=0;i<cnt;i++)
+	{
+		if(m_wait<customer[i].wait_time)
+			m_wait=customer[i].wait_time;
+		sum_wait+=customer[i].wait_time;
+		/*Time arrive,start,leave;
+		arrive.hour=open_time.hour+customer[i].arrived_time/60;
+		arrive.minute=customer[i].arrived_time%60;
+		leave.hour=open_time.hour+customer[i].leave_time/60;
+		leave.minute=customer[i].leave_time%60;
+		start.hour=open_time.hour+customer[i].start_time/60;
+		start.minute=customer[i].start_time%60;
+		cout<<"序号：";
+		if(customer[i].num>=100)
+			cout<<customer[i].num;
+		if(customer[i].num>=10&&customer[i].num<100)
+			cout<<0<<customer[i].num;
+		if(customer[i].num<10)
+			cout<<"00"<<customer[i].num;
+		cout<<"              到达：";
+		show(arrive.hour);
+		cout<<":";
+		show(arrive.minute);
+		cout<<"              开始：";
+		show(start.hour);
+		cout<<":";
+		show(start.minute);		
+		cout<<"         	 离开：";
+		show(leave.hour);
+		cout<<":";
+		show(leave.minute);
+		cout<<"         	 等待：";
+		show(customer[i].wait_time);
+		cout<<"分钟";
+		cout<<"               办理："<<customer[i].deal_time<<"分钟"<<endl;*/
+	}
+	cout<<"平均等待时间："<<sum_wait/cnt<<"分钟"<<endl;
+	cout<<"最长等待时间："<<m_wait<<"分钟"<<endl;
+	cout<<"各窗口服务客户人数："<<endl;
+	for(int i=0;i<k;i++)
+		cout<<i+1<<"号窗口："<<sum[i]<<"人"<<endl;
+	return;
+}
+
+int main()
+{
+	Time s,t;
+	cout<<"请输入银行营业时间，如营业时间为9:00-17:00，应输入9 17："<<endl;
+	cin>>s.hour>>t.hour;
+	int b=4,c=5;
+	/*cout<<"请输入银行可工作的窗口数：";
+	cin>>b;
+	cout<<"请输入客户的平均业务办理时间：";
+	cin>>c;*/
+	Bank bank(b,c,s,t);
+	now_time+=rand()%5+1;
+	while(bank.sign())
+	{		
+		bank.insert();
+		now_time+=rand()%5+1;
+		if(!bank.sign())
+		{
+			//cout<<endl;
+			//cout<<"-------------银行已停止营业-------------"<<endl;
+			break;
+		}
+	}
+	bank.display();
+	return 0;
+}
