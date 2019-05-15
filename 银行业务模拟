@@ -62,7 +62,7 @@ class Bank
 	void insert();
 	void leave(int i);
 	int leave_queue();
-	int gaussrand();
+	double gaussrand(double V,double E);
 	bool sign(){return total_time>now_time;
 	}
 	void display();
@@ -84,20 +84,18 @@ private:
 	int total_time;         //银行营业的总时间（分） 
 };
 
-//随机生成正态分布的数 
-int Bank::gaussrand()
+//随机生成方差为V，期望值为E的正态分布的数 
+double Bank::gaussrand(double V,double E)
 {
-    static int V1,V2,S;
-    static int phase=0;
-    int X;
-    int a=m;
-    int b=0-m;
+    static double V1,V2,S;
+    static double phase=0;
+    double X;
     if(phase==0)
 	{
         do
 		{
-            int U1 = (int)rand()%(a-b);
-            int U2 = (int)rand()%(a-b);
+            double U1 = (double)rand()/ RAND_MAX;
+            double U2 = (double)rand()/ RAND_MAX;
             V1 = 2 * U1 - 1;
             V2 = 2 * U2 - 1;
             S = V1 * V1 + V2 * V2;
@@ -107,6 +105,7 @@ int Bank::gaussrand()
 	else
         X= V2*sqrt(-2*log(S)/S);   
     phase=1-phase;
+    X = X * V + E;
     return X;
 }
 
