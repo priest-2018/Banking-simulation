@@ -157,7 +157,6 @@ int Bank::leave_queue()
 //银行进入一位新客户 
 void Bank::insert()
 {
-	//Sleep(1000);
 	Node theNew(n,now_time,0,0,gaussrand(4,m),0);
 	/*cout<<"业务号："<<n; 
 	cout<<"		还需等待："<<Q.size()<<"人"<<endl;*/
@@ -168,24 +167,11 @@ void Bank::insert()
 	{
 		Node temp=Q.front();
 		Q.pop();
-		temp.leave_time=now_time+temp.deal_time;
-		//temp.wait_time=temp.deal_time;
-		temp.start_time=now_time;
-		//如果开始办理时已停止营业 
-		if(temp.start_time>=total_time&&temp.arrived_time<total_time)
-		{
-			temp.leave_time=total_time;
-			temp.wait_time=total_time-temp.arrived_time;
-			temp.deal_time=0;
-		}
-		//如果到达时银行已经停止营业	
-		if(temp.arrived_time>=total_time)
-		{
-			temp.leave_time=temp.arrived_time;
-			temp.wait_time=0;
-			temp.deal_time=0;
-			temp.start_time=temp.arrived_time;
-		}
+		if(go_time[queue_free]>=temp.arrived_time)  //如果到达时窗口并不为空 
+			temp.start_time=go_time[queue_free];    //则客户开始办理时间为空闲窗口上个客户的离开时间 
+		else
+			temp.start_time=temp.arrived_time;      //如果到达时有空闲窗口则开始时间为到达时间 
+		temp.leave_time=temp.start_time+temp.deal_time;
 		sum[queue_free]++;
 		q[queue_free].push(temp);
 		customer[cnt++]=temp;
@@ -206,7 +192,6 @@ void show(int x)
 void Bank::display()
 {
 	cout<<endl;
-	//cout<<"在银行关门前办理完业务的客户："<<endl;
 	cout<<endl;
 	for(int i=0;i<cnt;i++)
 	{		
@@ -214,7 +199,7 @@ void Bank::display()
 		if(m_wait<customer[i].wait_time)
 			m_wait=customer[i].wait_time;
 		sum_wait+=customer[i].wait_time;
-		/*Time arrive,start,leave;
+		Time arrive,start,leave;
 		arrive.hour=open_time.hour+customer[i].arrived_time/60;
 		arrive.minute=customer[i].arrived_time%60;
 		leave.hour=open_time.hour+customer[i].leave_time/60;
@@ -243,7 +228,7 @@ void Bank::display()
 		cout<<"         	 等待：";
 		show(customer[i].wait_time);
 		cout<<"分钟";
-		cout<<"               办理："<<customer[i].deal_time<<"分钟"<<endl;*/
+		cout<<"               办理："<<customer[i].deal_time<<"分钟"<<endl;
 	}
 	cout<<"平均等待时间："<<sum_wait/cnt<<"分钟"<<endl;
 	cout<<"最长等待时间："<<m_wait<<"分钟"<<endl;
@@ -270,11 +255,7 @@ int main()
 		bank.insert();
 		now_time+=rand()%5+1;
 		if(!bank.sign())
-		{
-			//cout<<endl;
-			//cout<<"-------------银行已停止营业-------------"<<endl;
 			break;
-		}
 	}
 	bank.display();
 	return 0;
